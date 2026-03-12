@@ -5,12 +5,11 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.healthheatv2.network.FoodResponse
-import com.example.healthheatv2.network.RetrofitClient
-import kotlinx.coroutines.launch
 import com.example.healthheatv2.data.ProductCacheEntity
+import com.example.healthheatv2.data.ProductRepository
+import com.example.healthheatv2.network.FoodResponse
+import kotlinx.coroutines.launch
 
-// Represents the different states of our API call
 sealed class ApiState {
     object Idle : ApiState()
     object Loading : ApiState()
@@ -18,28 +17,48 @@ sealed class ApiState {
     data class Error(val message: String) : ApiState()
 }
 
-class ScannerViewModel : ViewModel() {
+// 1. Pass the repository into the ViewModel constructor
+class ScannerViewModel(private val repository: ProductRepository) : ViewModel() {
     private val _apiState = mutableStateOf<ApiState>(ApiState.Idle)
     val apiState: State<ApiState> = _apiState
 
     private val _searchHistory = mutableStateOf<List<ProductCacheEntity>>(emptyList())
     val searchHistory: State<List<ProductCacheEntity>> = _searchHistory
-    fun loadFromHistory(cachedProduct: FoodResponse) {
-        _apiState.value = ApiState.Success(cachedProduct)
+
+    init {
+        refreshHistory()
     }
-        fun lookupBarcode(barcode: String) {
+
+    // Fetch history from the database
+    fun refreshHistory() {
+        viewModelScope.launch {
+            _searchHistory.value = repository.getSearchHistory()
+        }
+    }
+
+    fun lookupBarcode(barcode: String) {
         _apiState.value = ApiState.Loading
         viewModelScope.launch {
             try {
-                val response = RetrofitClient.apiService.getFoodData(barcode)
+                // 2. Call the repository instead of the API directly!
+                val response = repository.getProduct(barcode)
+
                 _apiState.value = ApiState.Success(response)
-                Log.d("API_CALL", "Success: ${response.name}")
+
+                // 3. Refresh the history list so the new scan appears on the History screen
+                refreshHistory()
+
             } catch (e: Exception) {
                 _apiState.value = ApiState.Error(e.message ?: "Unknown error occurred")
                 Log.e("API_CALL", "Error fetching data", e)
             }
         }
     }
+
+    fun loadFromHistory(cachedProduct: FoodResponse) {
+        _apiState.value = ApiState.Success(cachedProduct)
+    }
+
     fun resetState() {
         _apiState.value = ApiState.Idle
     }
