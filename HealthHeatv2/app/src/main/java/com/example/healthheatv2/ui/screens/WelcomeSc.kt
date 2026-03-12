@@ -1,5 +1,6 @@
 package com.example.healthheatv2.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import com.example.healthheatv2.R
 import androidx.compose.foundation.layout.Box
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -31,6 +33,7 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun mainSc(
     onGetStartedClick: () -> Unit,
+    onHistoryClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -63,6 +66,7 @@ fun mainSc(
 
             Spacer(modifier = Modifier.weight(1f))
 
+            // Primary Action Button
             Button(
                 onClick = onGetStartedClick,
                 modifier = Modifier
@@ -76,6 +80,28 @@ fun mainSc(
             ) {
                 Text(
                     text = "Get Started",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.5.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Secondary Action Button for History
+            OutlinedButton(
+                onClick = onHistoryClick,
+                modifier = Modifier
+                    .fillMaxWidth(0.8f)
+                    .height(56.dp),
+                shape = RoundedCornerShape(4.dp),
+                border = BorderStroke(1.dp, Color(0xFFB59410).copy(alpha = 0.7f)),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = Color.White // White text for contrast on dark background
+                )
+            ) {
+                Text(
+                    text = "View History",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 0.5.sp
@@ -103,5 +129,5 @@ fun mainSc(
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun mainScPreview(){
-    mainSc(onGetStartedClick = {})
+    mainSc(onGetStartedClick = {}, onHistoryClick = {})
 }

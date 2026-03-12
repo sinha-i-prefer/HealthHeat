@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.healthheatv2.network.FoodResponse
 import com.example.healthheatv2.network.RetrofitClient
 import kotlinx.coroutines.launch
+import com.example.healthheatv2.data.ProductCacheEntity
 
 // Represents the different states of our API call
 sealed class ApiState {
@@ -21,7 +22,12 @@ class ScannerViewModel : ViewModel() {
     private val _apiState = mutableStateOf<ApiState>(ApiState.Idle)
     val apiState: State<ApiState> = _apiState
 
-    fun lookupBarcode(barcode: String) {
+    private val _searchHistory = mutableStateOf<List<ProductCacheEntity>>(emptyList())
+    val searchHistory: State<List<ProductCacheEntity>> = _searchHistory
+    fun loadFromHistory(cachedProduct: FoodResponse) {
+        _apiState.value = ApiState.Success(cachedProduct)
+    }
+        fun lookupBarcode(barcode: String) {
         _apiState.value = ApiState.Loading
         viewModelScope.launch {
             try {
@@ -34,7 +40,6 @@ class ScannerViewModel : ViewModel() {
             }
         }
     }
-
     fun resetState() {
         _apiState.value = ApiState.Idle
     }

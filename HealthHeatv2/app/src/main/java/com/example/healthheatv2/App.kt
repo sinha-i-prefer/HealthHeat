@@ -8,17 +8,20 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.healthheatv2.ui.screens.mainSc
 import com.example.healthheatv2.ui.screens.BarcodeScannerScreen
+import com.example.healthheatv2.ui.screens.ProductScreen
+import com.example.healthheatv2.ui.screens.HistoryScreen
 import com.example.healthheatv2.ui.viewmodel.ScannerViewModel
 
 sealed class Screen(val route: String) {
     object Welcome : Screen("welcome")
     object Scanner : Screen("scanner")
+    object Product : Screen("product")
+    object History : Screen("history")
 }
 
 @Composable
 fun App(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
-    // 1. Initialize the ViewModel
     val scannerViewModel: ScannerViewModel = viewModel()
 
     NavHost(
@@ -28,18 +31,35 @@ fun App(modifier: Modifier = Modifier) {
     ) {
         composable(Screen.Welcome.route) {
             mainSc(
-                onGetStartedClick = {
-                    navController.navigate(Screen.Scanner.route)
-                }
+                onGetStartedClick = { navController.navigate(Screen.Scanner.route) },
+                onHistoryClick = { navController.navigate(Screen.History.route) } // Navigate to History
             )
         }
         composable(Screen.Scanner.route) {
-            // 2. Pass the ViewModel into the Scanner Screen
             BarcodeScannerScreen(
                 viewModel = scannerViewModel,
-                onBarcodeDetected = { barcode ->
-                    // Handle barcode detection, e.g., navigate to a details screen
-                    println("Detected barcode: $barcode")
+                onScanSuccess = {
+                    navController.navigate(Screen.Product.route) {
+                        popUpTo(Screen.Scanner.route) { inclusive = false }
+                    }
+                }
+            )
+        }
+        composable(Screen.Product.route) {
+            ProductScreen(
+                viewModel = scannerViewModel,
+                onScanAnother = {
+                    scannerViewModel.resetState()
+                    navController.popBackStack()
+                }
+            )
+        }
+        composable(Screen.History.route) {
+            HistoryScreen(
+                viewModel = scannerViewModel,
+                onBackClick = { navController.popBackStack() },
+                onProductSelected = {
+                    navController.navigate(Screen.Product.route)
                 }
             )
         }
