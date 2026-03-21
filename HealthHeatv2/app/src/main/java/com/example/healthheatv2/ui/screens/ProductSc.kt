@@ -1,5 +1,6 @@
 package com.example.healthheatv2.ui.screens
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,6 +25,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -32,7 +35,7 @@ import com.example.healthheatv2.network.IngredientAnalysis
 import com.example.healthheatv2.ui.viewmodel.ApiState
 import com.example.healthheatv2.ui.viewmodel.ScannerViewModel
 
-// Theme Colors matching your Tailwind config
+// Theme Colors
 private val SurfaceDark = Color(0xFF131313)
 private val PrimaryGold = Color(0xFFFFD79B)
 private val PrimaryContainer = Color(0xFFFFB300)
@@ -51,7 +54,8 @@ private val NeutralDim = Color(0xFFFFBA38)
 @Composable
 fun ProductScreen(
     viewModel: ScannerViewModel,
-    onScanAnother: () -> Unit
+    onScanAnother: () -> Unit,
+    onViewDetails: () -> Unit
 ) {
     val apiState by viewModel.apiState
 
@@ -71,84 +75,89 @@ fun ProductScreen(
         if (apiState is ApiState.Success) {
             val product = (apiState as ApiState.Success).data
 
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                // 1. Hero Section
-                item {
-                    HeroSection(
-                        brandName = product.brand ?: "UNKNOWN BRAND",
-                        productName = product.name ?: "Unknown Product"
-                    )
-                }
+            // Wrap the list and the floating button in a Box
+            Box(modifier = Modifier.fillMaxSize()) {
 
-                // 2. Verdict Bento Grid
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        VerdictCard(
-                            modifier = Modifier.weight(1f),
-                            verdict = product.verdict ?: "N/A"
-                        )
-                        ScoreCard(
-                            modifier = Modifier.weight(1f),
-                            score = product.healthScore ?: 0
-                        )
-                    }
-                }
-
-                // 3. Ingredients Forensic Analysis
-                val ingredientsList = product.ingredientsAnalysis ?: emptyList()
-                if (ingredientsList.isNotEmpty()) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    // Added bottom padding so the last item isn't blocked by the floating button
+                    contentPadding = PaddingValues(bottom = 120.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    // 1. Hero Section
                     item {
-                        Text(
-                            text = "INGREDIENTS FORENSIC ANALYSIS",
-                            color = OnSurfaceVariant,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 2.sp,
-                            modifier = Modifier.padding(horizontal = 8.dp)
+                        HeroSection(
+                            brandName = product.brand ?: "UNKNOWN BRAND",
+                            productName = product.name ?: "Unknown Product"
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
                     }
 
-                    items(ingredientsList) { ingredient ->
-                        IngredientCard(ingredient)
-                        Spacer(modifier = Modifier.height(12.dp))
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            VerdictCard(
+                                modifier = Modifier.weight(1f),
+                                verdict = product.verdict ?: "N/A"
+                            )
+                            ScoreCard(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { onViewDetails() }, // Added clickable here!
+                                score = product.healthScore ?: 0
+                            )
+                        }
+                    }
+
+                    // 3. Ingredients Forensic Analysis
+                    val ingredientsList = product.ingredientsAnalysis ?: emptyList()
+                    if (ingredientsList.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "INGREDIENTS FORENSIC ANALYSIS",
+                                color = OnSurfaceVariant,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 2.sp,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+
+                        items(ingredientsList) { ingredient ->
+                            IngredientCard(ingredient)
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
                     }
                 }
 
-                // 4. Scan Another CTA
-                item {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(
-                        onClick = onScanAnother,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(64.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = PrimaryContainer,
-                            contentColor = Color(0xFF6B4900)
-                        ),
-                        shape = CircleShape
-                    ) {
-                        Icon(Icons.Filled.QrCodeScanner, contentDescription = null)
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = "SCAN ANOTHER PRODUCT",
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 2.sp,
-                            fontSize = 12.sp
-                        )
-                    }
+                // 4. Floating "Scan Another" Button
+                Button(
+                    onClick = onScanAnother,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter) // Pin to bottom
+                        .padding(bottom = 24.dp)
+                        .height(64.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PrimaryContainer,
+                        contentColor = Color(0xFF6B4900)
+                    ),
+                    shape = CircleShape,
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp) // Gives it a floating shadow
+                ) {
+                    Icon(Icons.Filled.QrCodeScanner, contentDescription = null)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "SCAN ANOTHER PRODUCT",
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 2.sp,
+                        fontSize = 12.sp
+                    )
                 }
             }
         } else {
-            // Fallback if accessed without data
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("No product data available.", color = OnSurfaceVariant)
             }
@@ -183,11 +192,8 @@ private fun HeroSection(brandName: String, productName: String) {
             .clip(RoundedCornerShape(32.dp))
             .background(SurfaceContainerLow)
     ) {
-        // Placeholder for the actual image.
-        // Replace this Box with Coil's AsyncImage when you're ready to load from network
         Box(modifier = Modifier.fillMaxSize().background(Color.DarkGray))
 
-        // Gradient Overlay
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -200,7 +206,6 @@ private fun HeroSection(brandName: String, productName: String) {
                 )
         )
 
-        // Text Content
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -254,7 +259,7 @@ private fun VerdictCard(modifier: Modifier = Modifier, verdict: String) {
                 Text(
                     text = if (isPass) "PASS" else "FAIL",
                     color = verdictColor,
-                    fontSize = 46.sp,
+                    fontSize = 52.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = (-2).sp,
                     style = TextStyle(shadow = Shadow(color = glowColor, blurRadius = 40f))
@@ -270,13 +275,13 @@ private fun VerdictCard(modifier: Modifier = Modifier, verdict: String) {
                         if (isPass) Icons.Filled.CheckCircle else Icons.Filled.Warning,
                         contentDescription = null,
                         tint = verdictColor,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(14.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = if (isPass) "METABOLIC MATCH" else "AVOID",
                         color = verdictColor,
-                        fontSize = 10.sp,
+                        fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp
                     )
@@ -297,55 +302,72 @@ private fun ScoreCard(modifier: Modifier = Modifier, score: Int) {
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "NUTRITIONAL PURITY",
+                text = "SCORE",
                 color = OnSurfaceVariant,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = 2.sp
+                letterSpacing = 2.sp,
+                modifier = Modifier.align(Alignment.Start)
             )
 
-            Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text(
-                            text = score.toString(),
-                            color = PrimaryGold,
-                            fontSize = 56.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = (-2).sp
-                        )
-                        Text(
-                            text = "/ 100",
-                            color = PrimaryGold.copy(alpha = 0.4f),
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(start = 4.dp)
-                        )
-                    }
-                    Icon(
-                        Icons.Filled.Analytics,
-                        contentDescription = null,
-                        tint = PrimaryGold.copy(alpha = 0.5f),
-                        modifier = Modifier.size(32.dp).padding(bottom = 8.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.height(24.dp))
-                LinearProgressIndicator(
-                    progress = { score / 100f },
+            // Speedometer Implementation
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
+            ) {
+                // The semi-circle Canvas arc
+                Canvas(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(10.dp)
-                        .clip(CircleShape),
-                    color = PrimaryGold,
-                    trackColor = SurfaceContainerHighest,
-                )
+                        .aspectRatio(1f) // Ensures it forms a perfect half-circle ratio
+                ) {
+                    val strokeWidth = 24f
+
+                    // 1. Draw the empty background track
+                    drawArc(
+                        color = SurfaceContainerHighest,
+                        startAngle = 180f,
+                        sweepAngle = 180f,
+                        useCenter = false,
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                    )
+
+                    // 2. Draw the filled foreground track based on the score
+                    drawArc(
+                        color = PrimaryGold,
+                        startAngle = 180f,
+                        sweepAngle = 180f * (score / 100f),
+                        useCenter = false,
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                    )
+                }
+
+                // The Score Text nestled inside the arch
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.offset(y = 12.dp) // Nudge down to sit on the baseline
+                ) {
+                    Text(
+                        text = score.toString(),
+                        color = PrimaryGold,
+                        fontSize = 44.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = (-2).sp
+                    )
+                    Text(
+                        text = "OUT OF 100",
+                        color = PrimaryGold.copy(alpha = 0.4f),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+                }
             }
         }
     }
@@ -367,11 +389,10 @@ private fun IngredientCard(ingredient: IngredientAnalysis) {
             .border(1.dp, GlassBorder, RoundedCornerShape(16.dp))
             .clip(RoundedCornerShape(16.dp))
     ) {
-        // The thick colored left border
         Box(
             modifier = Modifier
                 .width(4.dp)
-                .height(IntrinsicSize.Min) // Matches the height of the row
+                .height(IntrinsicSize.Min)
                 .background(statusColor.copy(alpha = 0.8f))
         )
 
@@ -383,6 +404,7 @@ private fun IngredientCard(ingredient: IngredientAnalysis) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
+                // Ingredient Name & Quantity Row
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = ingredient.name ?: "Unknown",
@@ -390,7 +412,20 @@ private fun IngredientCard(ingredient: IngredientAnalysis) {
                         fontSize = 16.sp,
                         fontWeight = FontWeight.ExtraBold
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // Display quantity if available
+                    if (!ingredient.quantity.isNullOrBlank() && ingredient.quantity.uppercase() != "UNKNOWN") {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = ingredient.quantity,
+                            color = OnSurfaceVariant,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
                     Box(
                         modifier = Modifier
                             .background(statusColor.copy(alpha = 0.9f), RoundedCornerShape(4.dp))
