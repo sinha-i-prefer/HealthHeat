@@ -1,15 +1,25 @@
 package com.example.healthheatv2
 
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -25,10 +35,9 @@ import com.example.healthheatv2.ui.screens.*
 import com.example.healthheatv2.ui.viewmodel.ScannerViewModel
 
 sealed class Screen(val route: String) {
-    object Welcome : Screen("welcome")
-    object SearchHub : Screen("search_hub") // Replaced Scanner with SearchHub
-    object Scanner : Screen("scanner")      // Now a sub-screen
-    object ManualSearch : Screen("manual_search") // New sub-screen
+    object SearchHub : Screen("search_hub")
+    object Scanner : Screen("scanner")
+    object ManualSearch : Screen("manual_search")
     object Product : Screen("product")
     object History : Screen("history")
 }
@@ -58,89 +67,72 @@ fun App(modifier: Modifier = Modifier) {
         }
     )
 
-    // Updated to point to SearchHub
+    // Switched to the History icon to match the HTML design
     val bottomNavItems = listOf(
         BottomNavItem("Search", Screen.SearchHub.route, Icons.Filled.Search),
-        BottomNavItem("History", Screen.History.route, Icons.Filled.List)
+        BottomNavItem("History", Screen.History.route, Icons.Filled.History)
     )
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // Show Bottom bar ONLY on SearchHub and History
     val showBottomBar = currentRoute in listOf(
         Screen.SearchHub.route,
         Screen.History.route
     )
 
     Scaffold(
+        containerColor = Color(0xFF131313), // Ensuring the scaffold background is dark
         bottomBar = {
             if (showBottomBar) {
-                NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                ) {
-                    bottomNavItems.forEach { item ->
-                        NavigationBarItem(
-                            icon = { Icon(item.icon, contentDescription = item.title) },
-                            label = { Text(item.title) },
-                            selected = currentRoute == item.route,
-                            onClick = {
-                                navController.navigate(item.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+                CustomBottomNavigationBar(
+                    items = bottomNavItems,
+                    currentRoute = currentRoute,
+                    onNavigate = { route ->
+                        navController.navigate(route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
                             }
-                        )
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
-                }
+                )
             }
         }
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Welcome.route,
+            startDestination = Screen.SearchHub.route,
             modifier = modifier.padding(innerPadding)
         ) {
-            composable(Screen.Welcome.route) {
-                mainSc(
-                    // Now navigates to SearchHub instead of Scanner directly
-                    onGetStartedClick = { navController.navigate(Screen.SearchHub.route) },
-                    onHistoryClick = { navController.navigate(Screen.History.route) }
-                )
-            }
-
-            // NEW: The Hub Screen
             composable(Screen.SearchHub.route) {
                 SearchHubScreen(
+                    viewModel = scannerViewModel,
                     onScanClick = { navController.navigate(Screen.Scanner.route) },
-                    onManualEntryClick = { navController.navigate(Screen.ManualSearch.route) }
+                    onManualEntryClick = { navController.navigate(Screen.ManualSearch.route) },
+                    onViewAllHistoryClick = { navController.navigate(Screen.History.route) },
+                    onProductSelected = { navController.navigate(Screen.Product.route) }
                 )
             }
 
-            // NEW: The Manual Search Screen
             composable(Screen.ManualSearch.route) {
                 ManualSearchScreen(
                     viewModel = scannerViewModel,
                     onBackClick = { navController.popBackStack() },
                     onSearchSuccess = {
                         navController.navigate(Screen.Product.route) {
-                            // Pop the manual search screen off so "Back" from product goes to Hub
                             popUpTo(Screen.ManualSearch.route) { inclusive = true }
                         }
                     }
                 )
             }
 
-            // Existing Scanner Screen
             composable(Screen.Scanner.route) {
                 BarcodeScannerScreen(
                     viewModel = scannerViewModel,
                     onScanSuccess = {
                         navController.navigate(Screen.Product.route) {
-                            // Pop the scanner screen off so "Back" from product goes to Hub
                             popUpTo(Screen.Scanner.route) { inclusive = true }
                         }
                     }
@@ -152,7 +144,7 @@ fun App(modifier: Modifier = Modifier) {
                     viewModel = scannerViewModel,
                     onScanAnother = {
                         scannerViewModel.resetState()
-                        navController.popBackStack()
+                        navController.popBackStack(Screen.SearchHub.route, inclusive = false)
                     }
                 )
             }
@@ -164,6 +156,72 @@ fun App(modifier: Modifier = Modifier) {
                     onProductSelected = {
                         navController.navigate(Screen.Product.route)
                     }
+                )
+            }
+        }
+    }
+}
+
+// -------------------------------------------------------------------
+// CUSTOM COMPOSABLE FOR THE BOTTOM NAVIGATION BAR
+// -------------------------------------------------------------------
+@Composable
+fun CustomBottomNavigationBar(
+    items: List<BottomNavItem>,
+    currentRoute: String?,
+    onNavigate: (String) -> Unit
+) {
+    // Colors mapped directly from your HTML configuration
+    val navBackgroundColor = Color(0xFF201F1F).copy(alpha = 0.95f)
+    val navBorderColor = Color.White.copy(alpha = 0.05f)
+    val activeGradient = Brush.linearGradient(
+        colors = listOf(Color(0xFFFFD79B), Color(0xFFFFB300))
+    )
+    val activeIconColor = Color(0xFF131313)
+    val inactiveIconColor = Color(0xFFE5E2E1).copy(alpha = 0.4f)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(80.dp)
+            // Rounded top corners and semi-transparent background
+            .background(
+                color = navBackgroundColor,
+                shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp)
+            )
+            // Subtle top border for the glassmorphism edge
+            .border(
+                width = 1.dp,
+                color = navBorderColor,
+                shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp)
+            )
+            .padding(horizontal = 40.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        items.forEach { item ->
+            val isSelected = currentRoute == item.route
+
+            Box(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .clickable { onNavigate(item.route) }
+                    .then(
+                        if (isSelected) {
+                            Modifier.background(activeGradient)
+                        } else {
+                            Modifier
+                        }
+                    )
+                    // The active state gets more padding to create the large circular pill look
+                    .padding(if (isSelected) 16.dp else 12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = item.icon,
+                    contentDescription = item.title,
+                    tint = if (isSelected) activeIconColor else inactiveIconColor,
+                    modifier = Modifier.size(28.dp)
                 )
             }
         }
