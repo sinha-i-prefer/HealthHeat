@@ -40,6 +40,7 @@ sealed class Screen(val route: String) {
     object ManualSearch : Screen("manual_search")
     object Product : Screen("product")
     object History : Screen("history")
+    object DetailedNutrition : Screen("detailed_nutrition")
 }
 
 data class BottomNavItem(
@@ -109,8 +110,16 @@ fun App(modifier: Modifier = Modifier) {
             composable(Screen.SearchHub.route) {
                 SearchHubScreen(
                     viewModel = scannerViewModel,
-                    onScanClick = { navController.navigate(Screen.Scanner.route) },
-                    onManualEntryClick = { navController.navigate(Screen.ManualSearch.route) },
+                    onScanClick = {
+                        // 1. Reset state before opening the camera
+                        scannerViewModel.resetState()
+                        navController.navigate(Screen.Scanner.route)
+                    },
+                    onManualEntryClick = {
+                        // 2. Reset state before opening the manual entry form
+                        scannerViewModel.resetState()
+                        navController.navigate(Screen.ManualSearch.route)
+                    },
                     onViewAllHistoryClick = { navController.navigate(Screen.History.route) },
                     onProductSelected = { navController.navigate(Screen.Product.route) }
                 )
@@ -145,6 +154,9 @@ fun App(modifier: Modifier = Modifier) {
                     onScanAnother = {
                         scannerViewModel.resetState()
                         navController.popBackStack(Screen.SearchHub.route, inclusive = false)
+                    },
+                    onViewDetails = {
+                        navController.navigate(Screen.DetailedNutrition.route)
                     }
                 )
             }
@@ -156,6 +168,12 @@ fun App(modifier: Modifier = Modifier) {
                     onProductSelected = {
                         navController.navigate(Screen.Product.route)
                     }
+                )
+            }
+            composable(Screen.DetailedNutrition.route) {
+                DetailedNutritionScreen(
+                    viewModel = scannerViewModel,
+                    onBackClick = { navController.popBackStack() }
                 )
             }
         }

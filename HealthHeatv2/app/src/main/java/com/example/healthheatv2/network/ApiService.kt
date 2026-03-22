@@ -11,25 +11,31 @@ import com.google.gson.annotations.SerializedName
 data class IngredientAnalysis(
     @SerializedName("name") val name: String?,
     @SerializedName("quantity") val quantity: String?,
-    @SerializedName("status") val status: String?, // e.g., "Good", "Bad", "Neutral"
+    @SerializedName("status") val status: String?,
     @SerializedName("reason") val reason: String?
 )
-
-// 2. The main response class
+data class NutritionAnalysis(
+    @SerializedName("energy_estimation") val energyEstimation: String?,
+    @SerializedName("macronutrient_balance") val macronutrientBalance: String?
+)
 data class FoodResponse(
     @SerializedName("verdict") val verdict: String?,
-    @SerializedName("health_score") val healthScore: Int?, // Added
-    @SerializedName("summary") val summary: String?, // Added
+    @SerializedName("health_score") val healthScore: Int?,
+    @SerializedName("summary") val summary: String?,
 
-    // Links to the new data class above
+    // NEW FIELDS ADDED HERE
+    @SerializedName("is_good_for_health") val isGoodForHealth: Boolean?,
+    @SerializedName("health_reason") val healthReason: String?,
+    @SerializedName("health_scale") val healthScale: Double?,
+    @SerializedName("safe_consumption_frequency") val safeConsumptionFrequency: String?,
+    @SerializedName("nutrition_analysis") val nutritionAnalysis: NutritionAnalysis?,
+
     @SerializedName("ingredients_analysis") val ingredientsAnalysis: List<IngredientAnalysis>?,
-
     @SerializedName("barcode") val barcode: String?,
     @SerializedName("name") val name: String?,
     @SerializedName("brand") val brand: String?,
     @SerializedName("image_url") val imageUrl: String?,
     @SerializedName("quantity") val quantity: String?,
-
     @SerializedName("ingredients_text") val ingredientsText: String?,
     @SerializedName("ingredients") val ingredients: List<String>?,
 
@@ -44,9 +50,7 @@ data class FoodResponse(
     @SerializedName("additives_tags") val additivesTags: List<String>?,
     @SerializedName("serving_size") val servingSize: String?,
     @SerializedName("ecoscore_grade") val ecoscoreGrade: String?,
-
-    @SerializedName("nutrient_levels") val nutrientLevels: Map<String, String>?, // Changed to String, as the JSON values are "high", "low", etc.
-
+    @SerializedName("nutrient_levels") val nutrientLevels: Map<String, String>?,
     @SerializedName("packaging") val packaging: String?,
     @SerializedName("alternatives") val alternatives: List<String>?,
     @SerializedName("verdict_color") val verdictColor: String?
