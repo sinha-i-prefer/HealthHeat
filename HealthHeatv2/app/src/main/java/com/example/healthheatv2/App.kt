@@ -124,7 +124,6 @@ fun App(modifier: Modifier = Modifier) {
                     onProductSelected = { navController.navigate(Screen.Product.route) }
                 )
             }
-
             composable(Screen.ManualSearch.route) {
                 ManualSearchScreen(
                     viewModel = scannerViewModel,
