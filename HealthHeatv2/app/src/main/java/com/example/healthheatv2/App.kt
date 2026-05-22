@@ -11,7 +11,9 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,9 +34,12 @@ import com.example.healthheatv2.data.AppDatabase
 import com.example.healthheatv2.data.ProductRepository
 import com.example.healthheatv2.network.RetrofitClient
 import com.example.healthheatv2.ui.screens.*
+import com.example.healthheatv2.ui.viewmodel.AuthState
+import com.example.healthheatv2.ui.viewmodel.AuthViewModel
 import com.example.healthheatv2.ui.viewmodel.ScannerViewModel
 
 sealed class Screen(val route: String) {
+    object Auth : Screen("auth")
     object SearchHub : Screen("search_hub")
     object Scanner : Screen("scanner")
     object ManualSearch : Screen("manual_search")
@@ -60,6 +65,7 @@ fun App(modifier: Modifier = Modifier) {
         apiService = RetrofitClient.apiService
     )
 
+    // Initialize ViewModels
     val scannerViewModel: ScannerViewModel = viewModel(
         factory = object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -68,7 +74,8 @@ fun App(modifier: Modifier = Modifier) {
         }
     )
 
-    // Switched to the History icon to match the HTML design
+    val authViewModel: AuthViewModel = viewModel()
+
     val bottomNavItems = listOf(
         BottomNavItem("Search", Screen.SearchHub.route, Icons.Filled.Search),
         BottomNavItem("History", Screen.History.route, Icons.Filled.History)
@@ -77,13 +84,14 @@ fun App(modifier: Modifier = Modifier) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    // Ensure the bottom bar only shows on the Hub and History screens
     val showBottomBar = currentRoute in listOf(
         Screen.SearchHub.route,
         Screen.History.route
     )
 
     Scaffold(
-        containerColor = Color(0xFF131313), // Ensuring the scaffold background is dark
+        containerColor = Color(0xFF131313),
         bottomBar = {
             if (showBottomBar) {
                 CustomBottomNavigationBar(
@@ -102,21 +110,38 @@ fun App(modifier: Modifier = Modifier) {
             }
         }
     ) { innerPadding ->
+        val startDestination = if (authViewModel.authState.value is AuthState.Success) {
+            Screen.SearchHub.route
+        } else {
+            Screen.Auth.route
+        }
+
         NavHost(
             navController = navController,
-            startDestination = Screen.SearchHub.route,
+            startDestination = startDestination,
             modifier = modifier.padding(innerPadding)
         ) {
+            composable(Screen.Auth.route) {
+                AuthScreen(
+                    viewModel = authViewModel,
+                    onAuthSuccess = {
+                        navController.navigate(Screen.SearchHub.route) {
+                            // Pop the auth screen off the stack so they can't 'back' into it
+                            popUpTo(Screen.Auth.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+            // ---------------------------------
+
             composable(Screen.SearchHub.route) {
                 SearchHubScreen(
                     viewModel = scannerViewModel,
                     onScanClick = {
-                        // 1. Reset state before opening the camera
                         scannerViewModel.resetState()
                         navController.navigate(Screen.Scanner.route)
                     },
                     onManualEntryClick = {
-                        // 2. Reset state before opening the manual entry form
                         scannerViewModel.resetState()
                         navController.navigate(Screen.ManualSearch.route)
                     },
@@ -124,6 +149,7 @@ fun App(modifier: Modifier = Modifier) {
                     onProductSelected = { navController.navigate(Screen.Product.route) }
                 )
             }
+
             composable(Screen.ManualSearch.route) {
                 ManualSearchScreen(
                     viewModel = scannerViewModel,
@@ -169,6 +195,7 @@ fun App(modifier: Modifier = Modifier) {
                     }
                 )
             }
+
             composable(Screen.DetailedNutrition.route) {
                 DetailedNutritionScreen(
                     viewModel = scannerViewModel,
@@ -179,16 +206,12 @@ fun App(modifier: Modifier = Modifier) {
     }
 }
 
-// -------------------------------------------------------------------
-// CUSTOM COMPOSABLE FOR THE BOTTOM NAVIGATION BAR
-// -------------------------------------------------------------------
 @Composable
 fun CustomBottomNavigationBar(
     items: List<BottomNavItem>,
     currentRoute: String?,
     onNavigate: (String) -> Unit
 ) {
-    // Colors mapped directly from your HTML configuration
     val navBackgroundColor = Color(0xFF201F1F).copy(alpha = 0.95f)
     val navBorderColor = Color.White.copy(alpha = 0.05f)
     val activeGradient = Brush.linearGradient(
@@ -201,12 +224,10 @@ fun CustomBottomNavigationBar(
         modifier = Modifier
             .fillMaxWidth()
             .height(80.dp)
-            // Rounded top corners and semi-transparent background
             .background(
                 color = navBackgroundColor,
                 shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp)
             )
-            // Subtle top border for the glassmorphism edge
             .border(
                 width = 1.dp,
                 color = navBorderColor,
@@ -230,7 +251,6 @@ fun CustomBottomNavigationBar(
                             Modifier
                         }
                     )
-                    // The active state gets more padding to create the large circular pill look
                     .padding(if (isSelected) 16.dp else 12.dp),
                 contentAlignment = Alignment.Center
             ) {
