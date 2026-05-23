@@ -39,6 +39,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.healthheatv2.data.ProductCacheEntity
+import com.example.healthheatv2.ui.components.UserProfileAvatar
+import com.example.healthheatv2.ui.viewmodel.AuthViewModel
 import com.example.healthheatv2.ui.viewmodel.ScannerViewModel
 
 // Define the custom colors from your Tailwind config
@@ -55,10 +57,12 @@ private val OutlineVariant = Color(0xFF514532)
 @Composable
 fun SearchHubScreen(
     viewModel: ScannerViewModel,
+    authViewModel: AuthViewModel,
     onScanClick: () -> Unit,
     onManualEntryClick: () -> Unit,
     onViewAllHistoryClick: () -> Unit,
-    onProductSelected: () -> Unit
+    onProductSelected: () -> Unit,
+    onLogout: () -> Unit
 ) {
     // Read the history directly from the Room database
     val history by viewModel.searchHistory
@@ -72,7 +76,14 @@ fun SearchHubScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // 1. Top Navigation Bar
-        CustomTopBar()
+        CustomTopBar(
+            avatarContent = {
+                UserProfileAvatar(
+                    viewModel = authViewModel,
+                    onLogout = onLogout
+                )
+            }
+        )
 
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -164,7 +175,9 @@ fun SearchHubScreen(
 }
 
 @Composable
-private fun CustomTopBar() {
+private fun CustomTopBar(
+    avatarContent: @Composable () -> Unit = {}
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -186,12 +199,7 @@ private fun CustomTopBar() {
                 letterSpacing = 1.sp
             )
         }
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .background(SurfaceContainerHighest, CircleShape)
-                .border(1.dp, OutlineVariant.copy(alpha = 0.5f), CircleShape)
-        )
+        avatarContent()
     }
 }
 

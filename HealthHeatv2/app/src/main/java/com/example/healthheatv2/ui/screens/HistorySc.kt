@@ -40,6 +40,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.healthheatv2.data.ProductCacheEntity
+import com.example.healthheatv2.ui.components.UserProfileAvatar
+import com.example.healthheatv2.ui.viewmodel.AuthViewModel
 import com.example.healthheatv2.ui.viewmodel.ScannerViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -70,8 +72,10 @@ private val NeutralBorder = Color(0xFFFFBA38).copy(alpha = 0.3f)
 @Composable
 fun HistoryScreen(
     viewModel: ScannerViewModel,
+    authViewModel: AuthViewModel,
     onBackClick: () -> Unit, // Keeping for compatibility, though we use the bottom nav mostly now
-    onProductSelected: () -> Unit
+    onProductSelected: () -> Unit,
+    onLogout: () -> Unit
 ) {
     val history by viewModel.searchHistory
     var searchQuery by remember { mutableStateOf("") }
@@ -98,7 +102,14 @@ fun HistoryScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // Top App Bar
-        CustomTopBar()
+        CustomTopBar(
+            avatarContent = {
+                UserProfileAvatar(
+                    viewModel = authViewModel,
+                    onLogout = onLogout
+                )
+            }
+        )
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -206,7 +217,9 @@ fun HistoryScreen(
 }
 
 @Composable
-private fun CustomTopBar() {
+private fun CustomTopBar(
+    avatarContent: @Composable () -> Unit = {}
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -217,9 +230,7 @@ private fun CustomTopBar() {
             Spacer(modifier = Modifier.width(16.dp))
             Text("HEALTHEAT", color = PrimaryGold, fontSize = 18.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
         }
-        Box(
-            modifier = Modifier.size(36.dp).background(SurfaceContainerHighest, CircleShape).border(1.dp, OutlineVariant.copy(alpha = 0.5f), CircleShape)
-        )
+        avatarContent()
     }
 }
 

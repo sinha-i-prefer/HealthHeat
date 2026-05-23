@@ -13,7 +13,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -137,6 +136,7 @@ fun App(modifier: Modifier = Modifier) {
             composable(Screen.SearchHub.route) {
                 SearchHubScreen(
                     viewModel = scannerViewModel,
+                    authViewModel = authViewModel,
                     onScanClick = {
                         scannerViewModel.resetState()
                         navController.navigate(Screen.Scanner.route)
@@ -146,7 +146,12 @@ fun App(modifier: Modifier = Modifier) {
                         navController.navigate(Screen.ManualSearch.route)
                     },
                     onViewAllHistoryClick = { navController.navigate(Screen.History.route) },
-                    onProductSelected = { navController.navigate(Screen.Product.route) }
+                    onProductSelected = { navController.navigate(Screen.Product.route) },
+                    onLogout = {
+                        navController.navigate(Screen.Auth.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
                 )
             }
 
@@ -189,9 +194,15 @@ fun App(modifier: Modifier = Modifier) {
             composable(Screen.History.route) {
                 HistoryScreen(
                     viewModel = scannerViewModel,
+                    authViewModel = authViewModel,
                     onBackClick = { navController.popBackStack() },
                     onProductSelected = {
                         navController.navigate(Screen.Product.route)
+                    },
+                    onLogout = {
+                        navController.navigate(Screen.Auth.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
                     }
                 )
             }

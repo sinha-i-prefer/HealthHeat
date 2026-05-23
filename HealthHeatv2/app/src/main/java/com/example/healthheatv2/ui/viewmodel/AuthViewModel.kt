@@ -54,4 +54,11 @@ class AuthViewModel : ViewModel() {
     fun resetState() {
         _authState.value = AuthState.Idle
     }
+
+    fun signOut() {
+        auth?.signOut()
+        _authState.value = AuthState.Idle
+    }
+
+    fun getCurrentUser() = auth?.currentUser
 }
