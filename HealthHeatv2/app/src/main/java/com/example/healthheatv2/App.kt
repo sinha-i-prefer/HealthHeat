@@ -181,12 +181,18 @@ fun App(modifier: Modifier = Modifier) {
             composable(Screen.Product.route) {
                 ProductScreen(
                     viewModel = scannerViewModel,
+                    authViewModel = authViewModel,
                     onScanAnother = {
                         scannerViewModel.resetState()
                         navController.popBackStack(Screen.SearchHub.route, inclusive = false)
                     },
                     onViewDetails = {
                         navController.navigate(Screen.DetailedNutrition.route)
+                    },
+                    onLogout = {
+                        navController.navigate(Screen.Auth.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
                     }
                 )
             }
